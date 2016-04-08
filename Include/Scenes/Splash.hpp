@@ -1,7 +1,8 @@
 #include <Jopnal/Jopnal.hpp>
+#include <Scenes/Level.hpp>
 
 #ifndef SPLASH_HPP
-#define SPALSH_HPP
+#define SPLASH_HPP
 
 class Splash:public jop::Scene
 {
@@ -18,7 +19,7 @@ public:
     void postUpdate(const float dt) override;
 
 private:
-
+    bool once;
 };
 
 #endif
