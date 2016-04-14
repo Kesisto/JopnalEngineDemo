@@ -18,7 +18,6 @@ public:
 private:
     float cam_speed;
     float cam_sprint;
-    float cam_jump;
 };
 
 #endif

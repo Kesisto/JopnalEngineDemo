@@ -35,7 +35,7 @@ Splash::Splash():jop::Scene("Splash"), m_sine(0.f)
         obj->setPosition(0.f, 0.f, -10).rotate(0.f, 0.f, 3.1415926536f);
         obj->createComponent<jop::SoundEffect>().setBuffer(jop::ResourceManager::getResource<jop::SoundBuffer>("Splash/Charge.wav"));
 
-        createChild("SpotLight")->createComponent<jop::LightSource>(getRenderer(), jop::LightSource::Type::Spot).setAttenuation(jop::LightSource::AttenuationPreset::_320).setCutoff(glm::radians(10.f), glm::radians(20.f)).setCastShadows(true);
+        createChild("SpotLight")->createComponent<jop::LightSource>(getRenderer(), jop::LightSource::Type::Spot).setCutoff(glm::radians(10.f), glm::radians(20.f)).setAttenuation(200).setCastShadows(true);
         findChild("SpotLight")->rotate(0, glm::radians(5.f), 0).setPosition(0.25f, -0.2f, 1.f);
 
         createChild("Cam");

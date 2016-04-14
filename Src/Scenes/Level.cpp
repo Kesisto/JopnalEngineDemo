@@ -1,22 +1,18 @@
 #include <Scenes/Level.hpp>
 Level::Level() :jop::Scene("Level"), m_sine(0.f)
 {
+    getWorld().setDebugMode(true);
+
     ///Ligth
-    createChild("Sun")->createComponent<jop::LightSource>(getRenderer(), jop::LightSource::Type::Point).setAttenuation(jop::LightSource::AttenuationPreset::_320).setCastShadows(true);
+    createChild("Sun")->createComponent<jop::LightSource>(getRenderer(), jop::LightSource::Type::Point).setAttenuation(300).setCastShadows(true);
     findChild("Sun")->setPosition(0.f, 20.f, -7.f);
-   
-    ///Player
-    createChild("Cam");
-    findChild("Cam")->createComponent<jop::Camera>(getRenderer(), jop::Camera::Projection::Perspective);
-    findChild("Cam")->createComponent<jop::Listener>();
-    cam_speed = 3.f;
-    cam_jump = 0.f;
+    findChild("Sun")->getComponent<jop::LightSource>()->setRenderMask(0x00000005);
+
     ///Skybox
-    auto sky = createChild("grnd");
-    auto& comp = sky->createComponent<jop::GenericDrawable>(getRenderer());
-    comp.setModel(jop::Model(jop::ResourceManager::getNamedResource<jop::BoxMesh>("skybox", 40.f, true), jop::ResourceManager::getEmptyResource<jop::Material>("grndmat").setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("Level/SkyBox.bmp"))));
-    comp.setReceiveShadows(true);
-    sky->setPosition(-0.f, -0.f, -1.f);
+    createChild("Skbo")->createComponent<jop::SkyBox>(getRenderer()).setMap(jop::ResourceManager::getResource<jop::Cubemap>(
+        "Level/SboxRight.png", "Level/SboxLeft.png",
+        "Level/SboxUp.png", "Level/SboxDown.png",
+        "Level/SboxBack.png", "Level/SboxFront.png"));
 
     ///Ground
     jop::Material& ground = jop::ResourceManager::getEmptyResource<jop::Material>("defmat");
@@ -27,7 +23,40 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
     createChild("groundBox")->createComponent<jop::GenericDrawable>(getRenderer())
         .setModel(jop::Model(jop::Mesh::getDefault(), ground));
     findChild("groundBox")->setPosition(0.f, -7.f, -0.f)
-    .setScale(40.f,1.f,40.f);
+    .setScale(40.f,1.f,40.f);  
+   
+    //Physics
+    auto sens = createChild("sensor");
+    sens->setPosition(-5.f, -3.f, -8);
+    sens->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("PhysSen", 1.f), jop::RigidBody::Type::StaticSensor));
+
+    auto attribs = jop::Material::Attribute::DefaultLighting | jop::Material::Attribute::SpecularMap | jop::Material::Attribute::EmissionMap | jop::Material::Attribute::DiffuseMap;
+    createChild("pln")->setPosition(0.f,
+        findChild("groundBox")->getPosition().y,
+        0.f);
+    findChild("pln")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::InfinitePlaneShape>("bigbcoll")));
+    jop::Material& def = jop::ResourceManager::getEmptyResource<jop::Material>("defmat", attribs);
+
+    ///Player
+    createChild("Cam");
+    findChild("Cam")->createComponent<jop::Camera>(getRenderer(), jop::Camera::Projection::Perspective);
+    findChild("Cam")->createComponent<jop::Listener>();
+    cam_speed = 3.f;
+
+    createChild("Player")->
+        createComponent<jop::GenericDrawable>(getRenderer())
+        .setModel(jop::Model(jop::Mesh::getDefault()));
+    findChild("Player")->setPosition(0.f, -5.f, -1.f).setScale(0.5f,1.f,0.5f);
+    findChild("Player")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("boxcoll", 1.f), jop::RigidBody::Type::Dynamic, 1.f));
+    findChild("Player")->getComponent<jop::GenericDrawable>()->setRenderGroup(2).setReceiveLights(true).castShadows();
+
+    ///Envitorement
+    createChild("Plank")->
+    createComponent<jop::GenericDrawable>(getRenderer())
+    .setModel(jop::Model(jop::Mesh::getDefault()));
+    findChild("Plank")->setPosition(0.f, -5.f, -5.f).setScale(0.5f, 0.05f, 3.f);
+    findChild("Plank")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("boxcoll", 1.f), jop::RigidBody::Type::Dynamic, 1.f));
+
 }
 
 Level::~Level()
@@ -41,9 +70,7 @@ void Level::preUpdate(const float dt)
 void Level::postUpdate(const float dt)
 {
     auto& Camera = findChild("Cam");
-    if (Camera->getPosition().y > -5.f)
-        Camera->move(-dt * 9.81f * Camera->getGlobalUp());
-
+    auto& P1 = findChild("Player");
     ///INPUT
     auto& h = *jop::Engine::getSubsystem<jop::Window>()->getEventHandler();
     using jop::Keyboard;
@@ -59,15 +86,23 @@ void Level::postUpdate(const float dt)
         {
             auto& right = Camera->getGlobalRight();
             right.y = 0.f;
-            Camera->move((h.keyDown(Keyboard::D) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * right);
+            P1->move((h.keyDown(Keyboard::D) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * right);
         }
         if (h.keyDown(Keyboard::W) || h.keyDown(Keyboard::S))
         {
             auto& front = Camera->getGlobalFront();
             front.y = 0.f;
-            Camera->move((h.keyDown(Keyboard::W) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * front);
+            P1->move((h.keyDown(Keyboard::W) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * front);
         }
-
-
+        Camera->setPosition(P1->getGlobalPosition().x, P1->getGlobalPosition().y + 2.f, P1->getGlobalPosition().z);
+        
+        if (h.keyDown(Keyboard::E))
+        {
+            glm::vec2 mouseCoords = { 0.f, 0.f };
+            glm::vec3 distance=Camera->getComponent<jop::Camera>()->getPickRay(mouseCoords, *jop::Engine::getSubsystem<jop::Window>());
+            if (float r=sqrt(distance.x*distance.x + distance.y*distance.y + distance.z*distance.z)<1.f)
+            findChild("Plank")->setPosition(0.f,0.f,0.f);
+        }
+        
   
 }
