@@ -95,13 +95,12 @@ void Level::postUpdate(const float dt)
             P1->move((h.keyDown(Keyboard::W) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * front);
         }
         Camera->setPosition(P1->getGlobalPosition().x, P1->getGlobalPosition().y + 2.f, P1->getGlobalPosition().z);
-        
         if (h.keyDown(Keyboard::E))
         {
-            glm::vec2 mouseCoords = { 0.f, 0.f };
-            glm::vec3 distance=Camera->getComponent<jop::Camera>()->getPickRay(mouseCoords, *jop::Engine::getSubsystem<jop::Window>());
-            if (float r=sqrt(distance.x*distance.x + distance.y*distance.y + distance.z*distance.z)<1.f)
-            findChild("Plank")->setPosition(0.f,0.f,0.f);
+            auto& Plank = findChild("Plank");
+            glm::vec3 difference = (Camera->getGlobalPosition() - (Plank->getPosition().x, Plank->getPosition().y, Plank->getPosition().z));
+            float distanance = sqrt(difference.x*difference.x + difference.y*difference.y + difference.z*difference.z);
+            //if (0.45f>glm::acos((Camera->getLocalFront().x, Camera->getLocalFront().y)*Plank->getGlobalPosition().x, Plank->getGlobalPosition().y))
         }
         
   
