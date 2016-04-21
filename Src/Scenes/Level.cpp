@@ -99,8 +99,20 @@ void Level::postUpdate(const float dt)
         {
             auto& Plank = findChild("Plank");
             glm::vec3 difference = (Camera->getGlobalPosition() - (Plank->getPosition().x, Plank->getPosition().y, Plank->getPosition().z));
-            float distanance = sqrt(difference.x*difference.x + difference.y*difference.y + difference.z*difference.z);
-            //if (0.45f>glm::acos((Camera->getLocalFront().x, Camera->getLocalFront().y)*Plank->getGlobalPosition().x, Plank->getGlobalPosition().y))
+            float distance = sqrt(difference.x*difference.x + difference.y*difference.y + difference.z*difference.z);
+            
+            glm::mat4 invPanthom = Camera->getInverseMatrix();
+            glm::vec3 up = { 0.f, 1.f, 0.f };
+            invPanthom = glm::lookAt(Camera->getGlobalPosition(), Plank->getGlobalPosition(), up);
+            glm::mat4 panthom = glm::inverse(invPanthom);           
+            glm::vec3 front = glm::normalize(-glm::vec3(panthom[2][0], panthom[2][1], panthom[2][2]));
+            float direction = sqrt(Camera->getGlobalFront().x*front.x + Camera->getGlobalFront().y*front.y + Camera->getGlobalFront().z*front.z);
+
+            JOP_DEBUG_INFO("dis "<<distance<<" direc "<<direction);
+            
+            if (distance <= 5.5f&&direction > 0.99f)
+                Plank->setPosition(0.f, 0.f, 0.f);
+
         }
         
   
