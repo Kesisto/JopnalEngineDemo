@@ -41,15 +41,14 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
     createChild("Cam");
     findChild("Cam")->createComponent<jop::Camera>(getRenderer(), jop::Camera::Projection::Perspective);
     findChild("Cam")->createComponent<jop::Listener>();
-    cam_speed = 3.f;
+    cam_speed = 5.f;
 
     createChild("Player")->
         createComponent<jop::GenericDrawable>(getRenderer())
         .setModel(jop::Model(jop::Mesh::getDefault()));
-    findChild("Player")->setPosition(0.f, -5.f, -1.f).setScale(0.5f,1.f,0.5f);
-    findChild("Player")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("boxcoll", 1.f), jop::RigidBody::Type::Dynamic, 1.f));
+    findChild("Player")->setPosition(0.f, -5.f, -1.f).setScale(0.5f,0.5f,0.5f);
+    findChild("Player")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::SphereShape>("coll", 1.f), jop::RigidBody::Type::Dynamic, 1.f));
     findChild("Player")->getComponent<jop::GenericDrawable>()->setRenderGroup(2).setReceiveLights(true).castShadows();
-
     ///Envitorement
     createChild("Plank")->
     createComponent<jop::GenericDrawable>(getRenderer())
@@ -71,6 +70,7 @@ void Level::postUpdate(const float dt)
 {
     auto& Camera = findChild("Cam");
     auto& P1 = findChild("Player");
+    auto& P1body = *P1->getComponent<jop::RigidBody>();
     ///INPUT
     auto& h = *jop::Engine::getSubsystem<jop::Window>()->getEventHandler();
     using jop::Keyboard;
@@ -82,23 +82,33 @@ void Level::postUpdate(const float dt)
         {
                 cam_sprint = 1.f;
         }
+        if (h.keyDown(Keyboard::Space))
+        {
+            glm::vec3 jump = { 0.f, 20.f, 0.f };
+            P1body.applyForce(jump,P1->getGlobalUp());
+        }
         if (h.keyDown(Keyboard::A) || h.keyDown(Keyboard::D))
         {
             auto& right = Camera->getGlobalRight();
             right.y = 0.f;
-            P1->move((h.keyDown(Keyboard::D) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * right);
+            P1body.applyCentralImpulse(((h.keyDown(Keyboard::D) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * right));
         }
         if (h.keyDown(Keyboard::W) || h.keyDown(Keyboard::S))
         {
             auto& front = Camera->getGlobalFront();
             front.y = 0.f;
-            P1->move((h.keyDown(Keyboard::W) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * front);
+            P1body.applyCentralImpulse(((h.keyDown(Keyboard::W) ? 1.f : -1.f) * dt * (cam_speed*cam_sprint) * front));
+        }
+        if (!h.keyDown(Keyboard::W) && !h.keyDown(Keyboard::S) && !h.keyDown(Keyboard::A) && !h.keyDown(Keyboard::D))
+        {
+            glm::vec3 stop = { 0.f, P1body.getGravity().y, 0.f };
+            P1body.setAngularVelocity(stop);
         }
         Camera->setPosition(P1->getGlobalPosition().x, P1->getGlobalPosition().y + 2.f, P1->getGlobalPosition().z);
         if (h.keyDown(Keyboard::E))
         {
             auto& Plank = findChild("Plank");
-            glm::vec3 difference = (Camera->getGlobalPosition() - (Plank->getPosition().x, Plank->getPosition().y, Plank->getPosition().z));
+            glm::vec3 difference = (Camera->getGlobalPosition() - Plank->getGlobalPosition());
             float distance = sqrt(difference.x*difference.x + difference.y*difference.y + difference.z*difference.z);
             
             glm::mat4 invPanthom = Camera->getInverseMatrix();
@@ -108,11 +118,31 @@ void Level::postUpdate(const float dt)
             glm::vec3 front = glm::normalize(-glm::vec3(panthom[2][0], panthom[2][1], panthom[2][2]));
             float direction = sqrt(Camera->getGlobalFront().x*front.x + Camera->getGlobalFront().y*front.y + Camera->getGlobalFront().z*front.z);
 
-            JOP_DEBUG_INFO("dis "<<distance<<" direc "<<direction);
-            
-            if (distance <= 5.5f&&direction > 0.99f)
-                Plank->setPosition(0.f, 0.f, 0.f);
+            float hor = 0.f;
+            float ver = 0.f;
 
+            if (h.keyDown(Keyboard::A) || h.keyDown(Keyboard::D))
+            {
+               hor=-(h.keyDown(Keyboard::D) ? 1.f : -1.f)  * (cam_speed*cam_sprint)/2;
+            }
+            if (h.keyDown(Keyboard::W) || h.keyDown(Keyboard::S))
+            {
+                ver = -(h.keyDown(Keyboard::W) ? 1.f : -1.f)  * (cam_speed*cam_sprint)/2;
+            }
+
+            glm::vec3 force = { hor, 5.f*(Camera->getGlobalPosition().y - Plank->getGlobalPosition().y), ver };
+            force.z *= -Camera->getGlobalFront().z;
+            force.y += ((1 - direction)*2000.f);
+            force.x *= -Camera->getGlobalRight().x;
+
+            JOP_DEBUG_INFO(force.y);
+            if (distance <= 7.f&&direction > 0.99f)
+            {
+                Plank->getComponent<jop::RigidBody>()->applyCentralForce(force);
+
+                glm::vec3 stop = { 0.f, 0.f, 0.f };
+                Plank->getComponent<jop::RigidBody>()->setAngularVelocity(stop);
+            }
         }
         
   
