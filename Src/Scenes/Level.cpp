@@ -49,6 +49,13 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
     findChild("Player")->setPosition(0.f, -5.f, -1.f).setScale(0.5f,0.5f,0.5f);
     findChild("Player")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::SphereShape>("coll", 1.f), jop::RigidBody::Type::Dynamic, 1.f));
     findChild("Player")->getComponent<jop::GenericDrawable>()->setRenderGroup(2).setReceiveLights(true).castShadows();
+    
+    createChild("Hand")->
+        createComponent<jop::GenericDrawable>(getRenderer())
+        .setModel(jop::Model(jop::Mesh::getDefault()));
+        findChild("Hand")->setPosition(findChild("Player")->getGlobalFront().x, findChild("Player")->getGlobalFront().y - 4.f, findChild("Player")->getGlobalFront().z - 1.5f).setScale(0.2f, 0.2f, 0.2f);
+
+
     ///Envitorement
     createChild("Plank")->
     createComponent<jop::GenericDrawable>(getRenderer())
@@ -69,8 +76,12 @@ void Level::preUpdate(const float dt)
 void Level::postUpdate(const float dt)
 {
     auto& Camera = findChild("Cam");
+    auto& Hand = findChild("Hand");
     auto& P1 = findChild("Player");
     auto& P1body = *P1->getComponent<jop::RigidBody>();
+    //Position updates
+    Camera->setPosition(P1->getGlobalPosition().x, P1->getGlobalPosition().y + 2.f, P1->getGlobalPosition().z);
+    Hand->setRotation(Camera->getGlobalRotation());
     ///INPUT
     auto& h = *jop::Engine::getSubsystem<jop::Window>()->getEventHandler();
     using jop::Keyboard;
@@ -104,15 +115,14 @@ void Level::postUpdate(const float dt)
             glm::vec3 stop = { 0.f, P1body.getGravity().y, 0.f };
             P1body.setAngularVelocity(stop);
         }
-        Camera->setPosition(P1->getGlobalPosition().x, P1->getGlobalPosition().y + 2.f, P1->getGlobalPosition().z);
         if (h.keyDown(Keyboard::E))
         {
             auto& Plank = findChild("Plank");
             glm::vec3 difference = (Camera->getGlobalPosition() - Plank->getGlobalPosition());
             float distance = sqrt(difference.x*difference.x + difference.y*difference.y + difference.z*difference.z);
             
-            glm::mat4 invPanthom = Camera->getInverseMatrix();
             glm::vec3 up = { 0.f, 1.f, 0.f };
+            glm::mat4 invPanthom = Camera->getInverseMatrix();
             invPanthom = glm::lookAt(Camera->getGlobalPosition(), Plank->getGlobalPosition(), up);
             glm::mat4 panthom = glm::inverse(invPanthom);           
             glm::vec3 front = glm::normalize(-glm::vec3(panthom[2][0], panthom[2][1], panthom[2][2]));
@@ -121,21 +131,19 @@ void Level::postUpdate(const float dt)
             float hor = 0.f;
             float ver = 0.f;
 
-            if (h.keyDown(Keyboard::A) || h.keyDown(Keyboard::D))
-            {
-               hor=-(h.keyDown(Keyboard::D) ? 1.f : -1.f)  * (cam_speed*cam_sprint)/2;
-            }
-            if (h.keyDown(Keyboard::W) || h.keyDown(Keyboard::S))
-            {
-                ver = -(h.keyDown(Keyboard::W) ? 1.f : -1.f)  * (cam_speed*cam_sprint)/2;
-            }
-
             glm::vec3 force = { hor, 5.f*(Camera->getGlobalPosition().y - Plank->getGlobalPosition().y), ver };
-            force.z *= -Camera->getGlobalFront().z;
-            force.y += ((1 - direction)*2000.f);
-            force.x *= -Camera->getGlobalRight().x;
 
-            JOP_DEBUG_INFO(force.y);
+            if (Plank->getGlobalPosition().x != Camera->getGlobalPosition().x)
+            {
+                force.x=(Plank->getGlobalPosition().x < Camera->getGlobalPosition().x ? 1.f : -1.f)
+                    *(1.f - direction)*2000.f - Plank->getComponent<jop::RigidBody>()->getGravity().x;
+            }
+            if (Plank->getGlobalPosition().y != Camera->getGlobalPosition().y)
+            {
+                force.y = (Plank->getGlobalPosition().y < Camera->getGlobalPosition().y ? 1.f : -1.f)
+                    *(1.f - direction)*2000.f - Plank->getComponent<jop::RigidBody>()->getGravity().y;
+            }
+
             if (distance <= 7.f&&direction > 0.99f)
             {
                 Plank->getComponent<jop::RigidBody>()->applyCentralForce(force);
