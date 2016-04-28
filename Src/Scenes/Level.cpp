@@ -54,7 +54,7 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
         createComponent<jop::GenericDrawable>(getRenderer())
         .setModel(jop::Model(jop::Mesh::getDefault()));
         findChild("Hand")->setPosition(findChild("Player")->getGlobalFront().x, findChild("Player")->getGlobalFront().y, findChild("Player")->getGlobalFront().z).setScale(0.2f, 0.2f, 0.2f);
-        findChild("Hand")->getComponent<jop::GenericDrawable>()->setRenderGroup(3).setReceiveLights(false);
+     //   findChild("Hand")->getComponent<jop::GenericDrawable>()->setRenderGroup(3).setReceiveLights(false);
 
     ///Envitorement
     createChild("Plank")->
@@ -81,13 +81,20 @@ void Level::postUpdate(const float dt)
     auto& Hand = findChild("Hand");
     auto& P1 = findChild("Player");
     auto& P1body = *P1->getComponent<jop::RigidBody>();
+    float matValues[] =
+    { 1.f, 0.f, 0.f, 1.f,
+     0.f, 1.f, 0.f, 1.f,
+     0.f, 0.f, 1.f, -2.5f,
+     0.f, 0.f, 0.f, 1.0f };
+    glm::mat4 moveMat = glm::make_mat4(matValues);
 
     //Position updates
     Camera->setPosition(P1->getGlobalPosition().x, P1->getGlobalPosition().y + 2.f, P1->getGlobalPosition().z);
     Hand->setRotation(Camera->getGlobalRotation());
-    Hand->setPosition(Camera->getGlobalFront());
+    glm::vec4 handPos = { Camera->getGlobalFront().x, Camera->getGlobalFront().y, Camera->getGlobalFront().z, 1.f };
+    handPos = moveMat*handPos;
+    Hand->setPosition(handPos.x,handPos.y,handPos.z);
     Hand->setPosition((Hand->getGlobalPosition() + Camera->getGlobalPosition()+(Camera->getGlobalPosition() - lastpos)));
-
     lastrot = Camera->getGlobalFront();
     lastpos = Camera->getGlobalPosition();
     ///INPUT
