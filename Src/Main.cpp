@@ -66,7 +66,7 @@ JOP_END_SAVEABLE_REGISTRATION(Menu)
 
 int main(int c, char* v[])
 {
-    JOP_ENGINE_INIT("EngineDemo", c , v);
+    JOP_ENGINE_INIT("BuilderDemo", c , v);
 
     struct EventHandler : jop::WindowEventHandler
     {
@@ -97,13 +97,12 @@ int main(int c, char* v[])
         }
 
     };
-
     jop::Engine::getSubsystem<jop::Window>()->setMouseMode(jop::Mouse::Mode::Frozen);
     jop::Engine::getSubsystem<jop::Window>()->setEventHandler<EventHandler>();
 
-    if (&jop::ShaderManager::getShader(jop::Material::Attribute::Default) == &jop::Shader::getError())
+    if (&jop::ShaderAssembler::getShader(jop::Material::Attribute::Default) == &jop::Shader::getError())
         return EXIT_FAILURE;
-    jop::Engine::createScene<Level>();
+    jop::Engine::createScene<Level,true>();
 
     return JOP_MAIN_LOOP;
 }

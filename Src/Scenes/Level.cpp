@@ -1,7 +1,7 @@
 #include <Scenes/Level.hpp>
 Level::Level() :jop::Scene("Level"), m_sine(0.f)
 {
-    getWorld().setDebugMode(true);
+   // getWorld().setDebugMode(true);
 
     ///Ligth
     createChild("Sun")->createComponent<jop::LightSource>(getRenderer(), jop::LightSource::Type::Point).setAttenuation(300).setCastShadows(true);
@@ -10,13 +10,13 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
 
     ///Skybox
     createChild("Skbo")->createComponent<jop::SkyBox>(getRenderer()).setMap(jop::ResourceManager::getResource<jop::Cubemap>(
-        "Level/SboxRight.png", "Level/SboxLeft.png",
-        "Level/SboxUp.png", "Level/SboxDown.png",
-        "Level/SboxBack.png", "Level/SboxFront.png"));
+        "Level/skybox_right.jpg", "Level/skybox_left.jpg",
+        "Level/skybox_top.jpg", "Level/skybox_bottom.jpg",
+        "Level/skybox_back.jpg", "Level/skybox_front.jpg",true));
 
     ///Ground
     jop::Material& ground = jop::ResourceManager::getEmptyResource<jop::Material>("defmat");
-    ground.setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("Level/Gravel.jpg"));
+    ground.setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("Level/Gravel.jpg",true));
     ground.setShininess(64.f);
     ground.setReflection(jop::Material::Reflection::Emission, jop::Color::Black);
 
@@ -32,7 +32,7 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
 
     auto attribs = jop::Material::Attribute::DefaultLighting | jop::Material::Attribute::SpecularMap | jop::Material::Attribute::EmissionMap | jop::Material::Attribute::DiffuseMap;
     createChild("pln")->setPosition(0.f,
-        findChild("groundBox")->getPosition().y,
+        findChild("groundBox")->getLocalPosition().y,
         0.f);
     findChild("pln")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::InfinitePlaneShape>("bigbcoll")));
     jop::Material& def = jop::ResourceManager::getEmptyResource<jop::Material>("defmat", attribs);
@@ -54,7 +54,7 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
         createComponent<jop::GenericDrawable>(getRenderer())
         .setModel(jop::Model(jop::Mesh::getDefault()));
         findChild("Hand")->setPosition(findChild("Player")->getGlobalFront().x, findChild("Player")->getGlobalFront().y, findChild("Player")->getGlobalFront().z).setScale(0.2f, 0.2f, 0.2f);
-     //   findChild("Hand")->getComponent<jop::GenericDrawable>()->setRenderGroup(3).setReceiveLights(false);
+        findChild("Hand")->getComponent<jop::GenericDrawable>()->setRenderGroup(3).setReceiveLights(false);
 
     ///Envitorement
     createChild("Plank")->
@@ -81,20 +81,14 @@ void Level::postUpdate(const float dt)
     auto& Hand = findChild("Hand");
     auto& P1 = findChild("Player");
     auto& P1body = *P1->getComponent<jop::RigidBody>();
-    float matValues[] =
-    { 1.f, 0.f, 0.f, 1.f,
-     0.f, 1.f, 0.f, 1.f,
-     0.f, 0.f, 1.f, -2.5f,
-     0.f, 0.f, 0.f, 1.0f };
-    glm::mat4 moveMat = glm::make_mat4(matValues);
+	P1body.setAngularVelocity(glm::vec3(0.f,0.f,0.f));
 
     //Position updates
     Camera->setPosition(P1->getGlobalPosition().x, P1->getGlobalPosition().y + 2.f, P1->getGlobalPosition().z);
-    Hand->setRotation(Camera->getGlobalRotation());
-    glm::vec4 handPos = { Camera->getGlobalFront().x, Camera->getGlobalFront().y, Camera->getGlobalFront().z, 1.f };
-    handPos = moveMat*handPos;
-    Hand->setPosition(handPos.x,handPos.y,handPos.z);
-    Hand->setPosition((Hand->getGlobalPosition() + Camera->getGlobalPosition()+(Camera->getGlobalPosition() - lastpos)));
+	Hand->setRotation(Camera->getLocalRotation());
+	Hand->setPosition(Camera->getGlobalPosition());
+	Hand->move(2.5f * Camera->getGlobalFront());
+
     lastrot = Camera->getGlobalFront();
     lastpos = Camera->getGlobalPosition();
     ///INPUT
@@ -137,7 +131,7 @@ void Level::postUpdate(const float dt)
             float distance = sqrt(difference.x*difference.x + difference.y*difference.y + difference.z*difference.z);
 
             glm::vec3 up = { 0.f, 1.f, 0.f };
-            glm::mat4 invPanthom = Camera->getInverseMatrix();
+            glm::mat4 invPanthom = Camera->getInverseTransform().getMatrix();
             invPanthom = glm::lookAt(Camera->getGlobalPosition(), Plank->getGlobalPosition(), up);
             glm::mat4 panthom = glm::inverse(invPanthom);
             glm::vec3 front = glm::normalize(-glm::vec3(panthom[2][0], panthom[2][1], panthom[2][2]));
@@ -163,27 +157,65 @@ void Level::postUpdate(const float dt)
 
             glm::vec3 force = { hor, 5.f*(Camera->getGlobalPosition().y - Plank->getGlobalPosition().y), ver };
 
+			float distance = sqrt((Plank->getGlobalPosition().x - Hand->getGlobalPosition().x)*(Plank->getGlobalPosition().x - Hand->getGlobalPosition().x) 
+				+ (Plank->getGlobalPosition().y - Hand->getGlobalPosition().y)*(Plank->getGlobalPosition().y - Hand->getGlobalPosition().y) 
+				+ (Plank->getGlobalPosition().z - Hand->getGlobalPosition().z)*(Plank->getGlobalPosition().z - Hand->getGlobalPosition().z));
+			
             if (Plank->getGlobalPosition().x != Hand->getGlobalPosition().x)
             {
-                force.x=(Plank->getGlobalPosition().x < Hand->getGlobalPosition().x ? 1.f : -1.f)
-                    *10.f - Plank->getComponent<jop::RigidBody>()->getGravity().x;
+				force.x = (Plank->getGlobalPosition().x < Hand->getGlobalPosition().x ? 1.f : -1.f)
+					*distance*2.f;
             }
             if (Plank->getGlobalPosition().y != Camera->getGlobalPosition().y)
             {
                 force.y = (Plank->getGlobalPosition().y < Hand->getGlobalPosition().y ? 1.f : 0.f)
-                    *10.f; Plank->getComponent<jop::RigidBody>()->getGravity().y;
+					*distance*2.f;
             }
             if (Plank->getGlobalPosition().z != Camera->getGlobalPosition().z)
             {
                 force.z = (Plank->getGlobalPosition().z < Hand->getGlobalPosition().z ? 1.f : -1.f)
-                    *10.f; Plank->getComponent<jop::RigidBody>()->getGravity().z;
+					*distance*2.f;
             }
+                Plank->getComponent<jop::RigidBody>()->setLinearVelocity(force);
 
-                Plank->getComponent<jop::RigidBody>()->applyCentralForce(force);
+				force.x = 0.f;
+				force.y = 0.f;
+				force.z = 0.f;
+				if (h.keyDown(Keyboard::KeypadSeven))
+				{
+					force.z = -2.f;
+				}
+				if (h.keyDown(Keyboard::KeypadNine))
+				{
+					force.z = 2.f;
+				}
 
-                glm::vec3 stop = { 0.f, 0.f, 0.f };
-                Plank->getComponent<jop::RigidBody>()->setAngularVelocity(stop);
-            
+				if (h.keyDown(Keyboard::KeypadFour))
+				{
+					force.y = -2.f;
+				}
+				if (h.keyDown(Keyboard::KeypadSix))
+				{
+					force.y = 2.f;
+				}
+				if (h.keyDown(Keyboard::KeypadEight))
+				{
+					force.x = -2.f;
+				}
+				if (h.keyDown(Keyboard::KeypadFive))
+				{
+					force.x = 2.f;
+				}
+				
+				Plank->getComponent<jop::RigidBody>()->setAngularVelocity(force);
+
+				if (h.mouseButtonDown(jop::Mouse::Left))
+				{
+					Plank->getComponent<jop::RigidBody>()->~RigidBody();
+					findChild("Plank")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("boxcoll", 1.f), jop::RigidBody::Type::Static, 1.f));	
+					Plank->getComponent<jop::RigidBody>()->setGravity(glm::vec3(0.f, 0.f, 0.f));
+				}
+
         }
         
   

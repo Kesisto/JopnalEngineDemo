@@ -24,8 +24,8 @@ Splash::Splash():jop::Scene("Splash"), m_sine(0.f)
                 .setShininess(512.f)
                 .removeAttributes(jop::Material::Attribute::AmbientConstant);
 
-        jop::Material& def = jop::ResourceManager::getEmptyResource<jop::Material>("defmat", attribs);
-        def.setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("Splash/JopnalLogo.png"));
+        jop::Material& def = jop::ResourceManager::getEmptyResource<jop::Material>("splashMat", attribs);
+        def.setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("Splash/JopnalLogo.png",true));
         def.setShininess(64.f);
         def.setReflection(jop::Material::Reflection::Emission, jop::Color::Black);
 
@@ -50,7 +50,7 @@ Splash::Splash():jop::Scene("Splash"), m_sine(0.f)
 
             auto ground = createChild("grnd");
             auto& comp = ground->createComponent<jop::GenericDrawable>(getRenderer());
-            comp.setModel(jop::Model(jop::ResourceManager::getNamedResource<jop::BoxMesh>("rectasdf", 10.f, true), jop::ResourceManager::getEmptyResource<jop::Material>("grndmat", attr).setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("Black.png")).setReflection(jop::Color::Black, jop::Color::Black, jop::Color::Black, jop::Color::Black)));
+            comp.setModel(jop::Model(jop::ResourceManager::getNamedResource<jop::BoxMesh>("rectasdf", 10.f, true), jop::ResourceManager::getEmptyResource<jop::Material>("grndmat", attr).setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("Black.png",true)).setReflection(jop::Color::Black, jop::Color::Black, jop::Color::Black, jop::Color::Black)));
 
             comp.setReceiveShadows(true);
 
@@ -65,13 +65,14 @@ Splash::~Splash()
 void Splash::preUpdate(const float dt)
 {
 }
-
+float endSplash=0.f;
 void Splash::postUpdate(const float dt)
 {
+	endSplash += dt;
     findChild("Cam")->setRotation(0.f, 0.f, 0.f);
 
-    if (findChild("Def")->getPosition().z < -2.f)
-        findChild("Def")->setPosition(0.f, 0.f, findChild("Def")->getPosition().z + dt*3.f);
+    if (findChild("Def")->getGlobalPosition().z < -2.f)
+        findChild("Def")->setPosition(0.f, 0.f, findChild("Def")->getGlobalPosition().z + dt*3.f);
     else
     {
         if (once)
@@ -79,7 +80,9 @@ void Splash::postUpdate(const float dt)
             findChild("Cam")->getComponent<jop::SoundEffect>()->play(false);
             once = false;
         }
-        if (findChild("Cam")->getComponent<jop::SoundEffect>()->getStatus() == jop::SoundSource::Status::Stopped)
-            jop::Engine::createScene<Level>();
+		if (endSplash>=2.f)
+		{
+			jop::Engine::createScene<Level>();
+		}
     }
 }
