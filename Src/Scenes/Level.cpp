@@ -1,12 +1,22 @@
 #include <Scenes/Level.hpp>
 Level::Level() :jop::Scene("Level"), m_sine(0.f)
 {
-   // getWorld().setDebugMode(true);
+    getWorld().setDebugMode(true);
 
     ///Ligth
     createChild("Sun")->createComponent<jop::LightSource>(getRenderer(), jop::LightSource::Type::Point).setAttenuation(300).setCastShadows(true);
     findChild("Sun")->setPosition(0.f, 20.f, -7.f);
     findChild("Sun")->getComponent<jop::LightSource>()->setRenderMask(0x00000005);
+
+	jop::Material& ad = jop::ResourceManager::getEmptyResource<jop::Material>("mat");
+	ad.setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("models/NailGun/nailgun.png", true));
+	ad.setShininess(64.f);
+	ad.setReflection(jop::Material::Reflection::Emission, jop::Color::Black);
+
+	auto mod = createChild("gun");
+	mod->createComponent<jop::ModelLoader>().load("models/NailGun/Nailgun.obj");
+	mod->getComponent<jop::GenericDrawable>()->getModel().setMaterial(ad);
+	mod->scale(0.25f).setPosition(-2.5f, -4.f, -4.f);
 
     ///Skybox
     createChild("Skbo")->createComponent<jop::SkyBox>(getRenderer()).setMap(jop::ResourceManager::getResource<jop::Cubemap>(
@@ -41,6 +51,7 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
     createChild("Cam");
     findChild("Cam")->createComponent<jop::Camera>(getRenderer(), jop::Camera::Projection::Perspective);
     findChild("Cam")->createComponent<jop::Listener>();
+	findChild("Cam")->setScale(0.1f);
     cam_speed = 5.f;
 
     createChild("Player")->
@@ -82,6 +93,8 @@ void Level::postUpdate(const float dt)
     auto& P1 = findChild("Player");
     auto& P1body = *P1->getComponent<jop::RigidBody>();
 	P1body.setAngularVelocity(glm::vec3(0.f,0.f,0.f));
+
+
 
     //Position updates
     Camera->setPosition(P1->getGlobalPosition().x, P1->getGlobalPosition().y + 2.f, P1->getGlobalPosition().z);
