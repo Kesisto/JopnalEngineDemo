@@ -1,4 +1,5 @@
 #include <Jopnal/Jopnal.hpp>
+#include <Scenes/Level.hpp>
 
 #ifndef MENU_HPP
 #define MENU_HPP
@@ -16,6 +17,11 @@ public:
     ~Menu();
     void preUpdate(const float dt) override;
     void postUpdate(const float dt) override;
+
+private:
+
+    jop::WeakReference<jop::Object> shovel;
+    bool start=true;
 };
 
 #endif

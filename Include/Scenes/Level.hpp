@@ -16,6 +16,10 @@ public:
     void postUpdate(const float dt) override;
 
 private:
+    std::vector<jop::WeakReference<jop::Object>>props;
+    std::vector<jop::WeakReference<jop::Object>>::iterator prop;
+    jop::WeakReference<jop::Object> gun;
+    bool objectPicked = false;
     float cam_speed;
     float cam_sprint;
 };

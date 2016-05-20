@@ -33,11 +33,12 @@ Menu::Menu() :jop::Scene("Menu"), m_sine(0.f)
     Cur.setMap(jop::Material::Map::Diffuse, jop::ResourceManager::getResource<jop::Texture2D>("models/Shovel/Shovel.png", true));
     Cur.setShininess(1.f);
     Cur.setReflection(jop::Material::Reflection::Emission, jop::Color::Black);
+  
+    shovel = createChild("Shovel");
+    shovel->createComponent<jop::ModelLoader>().load("models/Shovel/Shovel.obj");
+    shovel->getComponent<jop::GenericDrawable>()->getModel().setMaterial(Cur);
+    shovel->scale(0.5f).setPosition(-5.f, 1.f, -8.f).setRotation(0.f,0.f,-1.55f);
 
-    auto mod = createChild("Shovel");
-    mod->createComponent<jop::ModelLoader>().load("models/Shovel/Shovel.obj");
-    mod->getComponent<jop::GenericDrawable>()->getModel().setMaterial(Cur);
-    mod->scale(0.5f).setPosition(-5.f, 1.f, -8.f).setRotation(0.f,0.f,-1.55f);
   
 }
 
@@ -51,19 +52,26 @@ void Menu::preUpdate(const float dt)
 
 void Menu::postUpdate(const float dt)
 {
-    auto& shovel = findChild("Shovel");
+    shovel->rotate(glm::vec3(0.f, 0.05f, 0.f));
     findChild("Cam")->setRotation(0.f, 0.f, 0.f);
 
     auto& h = *jop::Engine::getSubsystem<jop::Window>()->getEventHandler();
     using jop::Keyboard;
 
-    if (h.keyDown(Keyboard::Up))
+    if (h.keyDown(Keyboard::Up) || h.keyDown(Keyboard::W))
     {
+        start = true;
         shovel->setPosition(-5.f, 1.f, -8.f);
     }
-    if (h.keyDown(Keyboard::Down))
+    if (h.keyDown(Keyboard::Down) || h.keyDown(Keyboard::S))
     {
+        start = false;
         shovel->setPosition(-6.5f, -1.f, -8.f);
+    }
+    if (h.keyDown(Keyboard::Enter))
+    {
+        if (start)
+            jop::Engine::createScene<Level>();
     }
 
 }

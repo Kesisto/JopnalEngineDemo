@@ -1,5 +1,5 @@
 #include <Jopnal/Jopnal.hpp>
-#include <Scenes/Level.hpp>
+#include <Scenes/Menu.hpp>
 
 #ifndef SPLASH_HPP
 #define SPLASH_HPP

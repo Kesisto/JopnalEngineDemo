@@ -82,7 +82,7 @@ void Splash::postUpdate(const float dt)
         }
 		if (endSplash>=2.f)
 		{
-			jop::Engine::createScene<Level>();
+			jop::Engine::createScene<Menu>();
 		}
     }
 }

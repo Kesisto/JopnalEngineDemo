@@ -102,7 +102,7 @@ int main(int c, char* v[])
 
     if (&jop::ShaderAssembler::getShader(jop::Material::Attribute::Default) == &jop::Shader::getError())
         return EXIT_FAILURE;
-    jop::Engine::createScene<Menu>();
+    jop::Engine::createScene<Splash>();
 
     return JOP_MAIN_LOOP;
 }
