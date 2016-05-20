@@ -32,17 +32,17 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
 
     createChild("groundBox")->createComponent<jop::GenericDrawable>(getRenderer())
         .setModel(jop::Model(jop::Mesh::getDefault(), ground));
-    findChild("groundBox")->setPosition(0.f, -7.f, -0.f)
+    findChild("groundBox")->setPosition(0.f, -7.5f, -0.f)
     .setScale(40.f,1.f,40.f);  
    
     //Physics
     auto sens = createChild("sensor");
-    sens->setPosition(-5.f, -3.f, -8);
+    sens->setPosition(-5.f, -3.f, -8.f);
     sens->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("PhysSen", 1.f), jop::RigidBody::Type::StaticSensor));
 
     auto attribs = jop::Material::Attribute::DefaultLighting | jop::Material::Attribute::SpecularMap | jop::Material::Attribute::EmissionMap | jop::Material::Attribute::DiffuseMap;
     createChild("pln")->setPosition(0.f,
-        findChild("groundBox")->getLocalPosition().y,
+        findChild("groundBox")->getLocalPosition().y+0.5f,
         0.f);
     findChild("pln")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::InfinitePlaneShape>("bigbcoll")));
     jop::Material& def = jop::ResourceManager::getEmptyResource<jop::Material>("defmat", attribs);
@@ -76,14 +76,33 @@ Level::Level() :jop::Scene("Level"), m_sine(0.f)
     auto obj = createChild("Plank");
     obj->createComponent<jop::GenericDrawable>(getRenderer())
     .setModel(jop::Model(jop::Mesh::getDefault(),wood));
-    findChild("Plank")->setPosition(-10.f, -5.f, -5.f).setScale(0.5f, 0.05f, 3.f);
-    findChild("Plank")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("boxcoll", 1.f), jop::RigidBody::Type::Dynamic, 1.f));
+    findChild("Plank")->setPosition(-15.f, -5.f, -16.f).setScale(0.5f, 0.05f, 3.f);
+    findChild("Plank")->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("boxcoll", glm::vec3(0.5f, 0.05f, 3.0f)), jop::RigidBody::Type::Dynamic, 1.f));
     props.push_back(obj);
     props.push_back(cloneChild("Plank", "Plank"));
     props.push_back(cloneChild("Plank", "Plank"));
     props.push_back(cloneChild("Plank", "Plank"));
     props.push_back(cloneChild("Plank", "Plank"));
     props.push_back(cloneChild("Plank", "Plank"));
+    props.push_back(cloneChild("Plank", "Plank"));
+    props.push_back(cloneChild("Plank", "Plank"));
+    props.push_back(cloneChild("Plank", "Plank"));
+    props.push_back(cloneChild("Plank", "Plank"));
+    props.push_back(cloneChild("Plank", "Plank"));
+    props.push_back(cloneChild("Plank", "Plank2"));
+    findChild("Plank2")->setPosition(-13.f, -5.f, -16.f);
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+    props.push_back(cloneChild("Plank2", "Plank2"));
+
+
 
 }
 
@@ -111,6 +130,10 @@ void Level::postUpdate(const float dt)
 	Hand->setRotation(Camera->getLocalRotation());
 	Hand->setPosition(Camera->getGlobalPosition());
 	Hand->move(2.5f * Camera->getGlobalFront());
+    gun->setRotation(Camera->getGlobalRotation());
+    gun->rotate(glm::vec3(0.f, 1.65f, 0.2f));
+    gun->setPosition(Camera->getGlobalPosition());
+    gun->move(Camera->getGlobalFront() + 0.5f*Camera->getGlobalRight() + 0.1f*Camera->getGlobalUp());
 
     lastrot = Camera->getGlobalFront();
     lastpos = Camera->getGlobalPosition();
@@ -238,11 +261,12 @@ void Level::postUpdate(const float dt)
 				prop->get()->getComponent<jop::RigidBody>()->setAngularVelocity(force);
 
 				if (h.mouseButtonDown(jop::Mouse::Left))
-				{
-					prop->get()->getComponent<jop::RigidBody>()->~RigidBody();
-					prop->get()->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("boxcoll", 1.f), jop::RigidBody::Type::Static, 1.f));	
-					prop->get()->getComponent<jop::RigidBody>()->setGravity(glm::vec3(0.f, 0.f, 0.f));
-				}
+                {
+                            prop->get()->getComponent<jop::RigidBody>()->removeSelf();
+                            prop->get()->createComponent<jop::RigidBody>(getWorld(), jop::RigidBody::ConstructInfo(jop::ResourceManager::getNamedResource<jop::BoxShape>("boxcoll", 1.f), jop::RigidBody::Type::Static, 1.f));
+                            prop->get()->getComponent<jop::RigidBody>()->setGravity(glm::vec3(0.f, 0.f, 0.f));
+
+                }
           }
         
   
