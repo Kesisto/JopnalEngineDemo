@@ -38,6 +38,8 @@ Splash::Splash():jop::Scene("Splash"), m_sine(0.f)
         createChild("SpotLight")->createComponent<jop::LightSource>(getRenderer(), jop::LightSource::Type::Spot).setCutoff(glm::radians(10.f), glm::radians(20.f)).setAttenuation(200).setCastShadows(true);
         findChild("SpotLight")->rotate(0, glm::radians(5.f), 0).setPosition(0.25f, -0.2f, 1.f);
 
+		
+
         createChild("Cam");
         findChild("Cam")->createComponent<jop::Camera>(getRenderer(), jop::Camera::Projection::Perspective);
         findChild("Cam")->createComponent<jop::Listener>();
@@ -71,6 +73,9 @@ void Splash::postUpdate(const float dt)
 	endSplash += dt;
     findChild("Cam")->setRotation(0.f, 0.f, 0.f);
 
+	auto& h = *jop::Engine::getSubsystem<jop::Window>()->getEventHandler();
+	using jop::Keyboard;
+
     if (findChild("Def")->getGlobalPosition().z < -2.f)
         findChild("Def")->setPosition(0.f, 0.f, findChild("Def")->getGlobalPosition().z + dt*3.f);
     else
@@ -80,9 +85,13 @@ void Splash::postUpdate(const float dt)
             findChild("Cam")->getComponent<jop::SoundEffect>()->play(false);
             once = false;
         }
-		if (endSplash>=2.f)
+		if (endSplash >= 2.f)
 		{
 			jop::Engine::createScene<Menu>();
 		}
     }
+	if (h.keyDown(Keyboard::Space) || h.keyDown(Keyboard::Enter))
+	{
+		jop::Engine::createScene<Menu>();
+	}
 }
